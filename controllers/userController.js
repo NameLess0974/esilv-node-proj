@@ -2,47 +2,68 @@
 const { User, Role } = require('../models');
 const bcrypt = require('bcryptjs');
 
-exports.getAllUsers = async (req, res) => {
-  try {
-    const users = await User.findAll({ include: [{ model: Role, as: 'role', attributes: ['name'] }] });
-    res.json(users);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+// Middleware pour capturer les erreurs asynchrones
+const asyncHandler = (fn) => (req, res, next) => {
+  Promise.resolve(fn(req, res, next)).catch(next);
 };
 
-exports.updateUser = async (req, res) => {
+// Fonction utilitaire pour récupérer un utilisateur par ID
+const findUserById = async (userId) => {
+  const user = await User.findByPk(userId, {
+    include: [{ model: Role, as: 'role', attributes: ['name'] }],
+  });
+  if (!user) {
+    const error = new Error('Utilisateur non trouvé');
+    error.status = 404;
+    throw error;
+  }
+  return user;
+};
+
+// Récupérer tous les utilisateurs
+exports.getAllUsers = asyncHandler(async (req, res) => {
+  const users = await User.findAll({
+    include: [{ model: Role, as: 'role', attributes: ['name'] }],
+  });
+  res.json(users);
+});
+
+// Mettre à jour un utilisateur
+exports.updateUser = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { username, password, roleName } = req.body;
 
-  try {
-    const user = await User.findByPk(id);
-    if (!user) return res.status(404).json({ message: 'Utilisateur non trouvé' });
+  // Récupérer l'utilisateur
+  const user = await findUserById(id);
 
-    if (password) user.password = await bcrypt.hash(password, 10); // Hachage du mot de passe
-    if (username) user.username = username;
+  // Hachage du mot de passe s'il est fourni
+  if (password) {
+    user.password = await bcrypt.hash(password, 10);
+  }
 
-    if (roleName) {
-      const role = await Role.findOne({ where: { name: roleName } });
-      if (!role) return res.status(400).json({ message: 'Rôle non valide' });
-      user.roleId = role.id;
+  // Mise à jour du nom d'utilisateur
+  if (username) {
+    user.username = username;
+  }
+
+  // Vérifier et mettre à jour le rôle
+  if (roleName) {
+    const role = await Role.findOne({ where: { name: roleName } });
+    if (!role) {
+      const error = new Error('Rôle non valide');
+      error.status = 400;
+      throw error;
     }
-
-    await user.save();
-    res.json({ message: 'Utilisateur mis à jour avec succès', user });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    user.roleId = role.id;
   }
-};
 
-exports.deleteUser = async (req, res) => {
-  try {
-    const user = await User.findByPk(req.params.id);
-    if (!user) return res.status(404).json({ message: 'Utilisateur non trouvé' });
+  await user.save();
+  res.json({ message: 'Utilisateur mis à jour avec succès', user });
+});
 
-    await user.destroy();
-    res.json({ message: 'Utilisateur supprimé avec succès' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
+// Supprimer un utilisateur
+exports.deleteUser = asyncHandler(async (req, res) => {
+  const user = await findUserById(req.params.id);
+  await user.destroy();
+  res.json({ message: 'Utilisateur supprimé avec succès' });
+});
