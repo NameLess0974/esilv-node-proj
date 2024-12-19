@@ -47,7 +47,7 @@ exports.createBook = asyncHandler(async (req, res) => {
   const book = await Book.create({ title, volumes, pages, releaseDate, authorId });
 
   // Associer les catégories si elles existent
-  if (Array.isArray(categoryIds)) {
+  if (Array.isArray(categoryIds) && categoryIds.length > 0) {
     const categories = await Category.findAll({ where: { id: categoryIds } });
     await book.setCategories(categories);
   }
@@ -58,7 +58,10 @@ exports.createBook = asyncHandler(async (req, res) => {
 // Récupération de tous les livres
 exports.getAllBooks = asyncHandler(async (req, res) => {
   const books = await Book.findAll({
-    include: ['author', 'categories'],
+    include: [
+      { model: Author, as: 'author' },
+      { model: Category, as: 'categories' },
+    ],
   });
   res.json(books);
 });
@@ -66,6 +69,12 @@ exports.getAllBooks = asyncHandler(async (req, res) => {
 // Récupération d'un livre par ID
 exports.getBookById = asyncHandler(async (req, res) => {
   const book = await findEntityById(Book, req.params.id, 'Livre');
+  await book.reload({
+    include: [
+      { model: Author, as: 'author' },
+      { model: Category, as: 'categories' },
+    ],
+  });
   res.json(book);
 });
 
@@ -80,7 +89,9 @@ exports.updateBook = asyncHandler(async (req, res) => {
   const book = await findEntityById(Book, id, 'Livre');
 
   // Vérifier si l'auteur existe si authorId est fourni
-  if (authorId) await findEntityById(Author, authorId, 'Auteur');
+  if (authorId) {
+    await findEntityById(Author, authorId, 'Auteur');
+  }
 
   // Mettre à jour le livre
   await book.update({ title, volumes, pages, releaseDate, authorId });
