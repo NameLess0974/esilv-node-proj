@@ -1,104 +1,102 @@
 const { Book, Author, Category } = require('../models');
 const { validationResult } = require('express-validator');
 
+// Middleware pour capturer les erreurs asynchrones
+const asyncHandler = (fn) => (req, res, next) => {
+  Promise.resolve(fn(req, res, next)).catch(next);
+};
+
 // Fonction utilitaire pour gérer les erreurs de validation
-const handleValidationErrors = (req, res) => {
+const handleValidationErrors = (req) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
+    const error = new Error('Validation Error');
+    error.status = 400;
+    error.details = errors.array();
+    throw error;
   }
 };
 
-// Fonction utilitaire pour récupérer un auteur
-const findAuthorById = async (authorId, res) => {
-  const author = await Author.findByPk(authorId);
-  if (!author) {
-    res.status(404).json({ message: 'Auteur non trouvé' });
-    return null;
+// Fonction utilitaire pour récupérer une entité par ID
+const findEntityById = async (Model, id, entityName) => {
+  if (!id) {
+    const error = new Error(`${entityName} ID est requis`);
+    error.status = 400;
+    throw error;
   }
-  return author;
+
+  const entity = await Model.findByPk(id);
+  if (!entity) {
+    const error = new Error(`${entityName} non trouvé`);
+    error.status = 404;
+    throw error;
+  }
+  return entity;
 };
 
 // Création d'un livre
-exports.createBook = async (req, res) => {
-  if (handleValidationErrors(req, res)) return;
+exports.createBook = asyncHandler(async (req, res) => {
+  handleValidationErrors(req);
 
   const { title, volumes, pages, releaseDate, authorId, categoryIds } = req.body;
-  try {
-    if (!(await findAuthorById(authorId, res))) return;
 
-    const book = await Book.create({ title, volumes, pages, releaseDate, authorId });
+  // Vérifier si l'auteur existe
+  await findEntityById(Author, authorId, 'Auteur');
 
-    if (Array.isArray(categoryIds)) {
-      const categories = await Category.findAll({ where: { id: categoryIds } });
-      await book.setCategories(categories);
-    }
+  // Créer le livre
+  const book = await Book.create({ title, volumes, pages, releaseDate, authorId });
 
-    res.status(201).json({ message: 'Livre créé avec succès', book });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
+  // Associer les catégories si elles existent
+  if (Array.isArray(categoryIds)) {
+    const categories = await Category.findAll({ where: { id: categoryIds } });
+    await book.setCategories(categories);
   }
-};
+
+  res.status(201).json({ message: 'Livre créé avec succès', book });
+});
 
 // Récupération de tous les livres
-exports.getAllBooks = async (req, res) => {
-  try {
-    const books = await Book.findAll({
-      include: ['author', 'categories'],
-    });
-    res.json(books);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
+exports.getAllBooks = asyncHandler(async (req, res) => {
+  const books = await Book.findAll({
+    include: ['author', 'categories'],
+  });
+  res.json(books);
+});
 
 // Récupération d'un livre par ID
-exports.getBookById = async (req, res) => {
-  try {
-    const book = await Book.findByPk(req.params.id, {
-      include: ['author', 'categories'],
-    });
-    if (!book) return res.status(404).json({ message: 'Livre non trouvé' });
-    res.json(book);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
+exports.getBookById = asyncHandler(async (req, res) => {
+  const book = await findEntityById(Book, req.params.id, 'Livre');
+  res.json(book);
+});
 
 // Mise à jour d'un livre
-exports.updateBook = async (req, res) => {
-  if (handleValidationErrors(req, res)) return;
+exports.updateBook = asyncHandler(async (req, res) => {
+  handleValidationErrors(req);
 
   const { id } = req.params;
   const { title, volumes, pages, releaseDate, authorId, categoryIds } = req.body;
-  try {
-    const book = await Book.findByPk(id);
-    if (!book) return res.status(404).json({ message: 'Livre non trouvé' });
 
-    if (authorId && !(await findAuthorById(authorId, res))) return;
+  // Trouver le livre à mettre à jour
+  const book = await findEntityById(Book, id, 'Livre');
 
-    await book.update({ title, volumes, pages, releaseDate, authorId });
+  // Vérifier si l'auteur existe si authorId est fourni
+  if (authorId) await findEntityById(Author, authorId, 'Auteur');
 
-    if (Array.isArray(categoryIds)) {
-      const categories = await Category.findAll({ where: { id: categoryIds } });
-      await book.setCategories(categories);
-    }
+  // Mettre à jour le livre
+  await book.update({ title, volumes, pages, releaseDate, authorId });
 
-    res.json({ message: 'Livre mis à jour avec succès', book });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
+  // Mettre à jour les catégories
+  if (Array.isArray(categoryIds)) {
+    const categories = await Category.findAll({ where: { id: categoryIds } });
+    await book.setCategories(categories);
   }
-};
+
+  res.json({ message: 'Livre mis à jour avec succès', book });
+});
 
 // Suppression d'un livre
-exports.deleteBook = async (req, res) => {
-  try {
-    const book = await Book.findByPk(req.params.id);
-    if (!book) return res.status(404).json({ message: 'Livre non trouvé' });
-
-    await book.destroy();
-    res.json({ message: 'Livre supprimé avec succès' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
+exports.deleteBook = asyncHandler(async (req, res) => {
+  const book = await findEntityById(Book, req.params.id, 'Livre');
+  await book.destroy();
+  res.json({ message: 'Livre supprimé avec succès' });
+});
