@@ -31,8 +31,13 @@ Avoir une gestion de droits (unitaire/rôle ou les deux)
 Avoir une bonne hiérarchie de projet
 Avoir une bonne architecture logicielle
 Respecter la norme RESTFULL
+
+
 Rendu
 Indiquer dans le champs de rendu :
 
-Lien Github publique
-Liste des pseudos Github associés au nom/prénom de l'étudiant
+https://github.com/NameLess0974/esilv-node-proj
+
+URSAN Cristian - NameLess0974
+Jérémie MUCHEMBLED - jeremie-78 
+Smit PAREKH - smitprkh
