@@ -1,16 +1,16 @@
+// models/category.js
 const { Model } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
   class Category extends Model {
-    static associate({ Book, BookCategory }) {
-      this.belongsToMany(Book, {
-        through: BookCategory,
+    static associate(models) {
+      Category.belongsToMany(models.Book, {
+        through: models.BookCategory,
         foreignKey: 'categoryId',
         as: 'books',
       });
     }
   }
-
   Category.init(
     {
       id: {
@@ -23,7 +23,9 @@ module.exports = (sequelize, DataTypes) => {
         unique: true,
         allowNull: false,
       },
-      description: DataTypes.TEXT,
+      description: {
+        type: DataTypes.TEXT,
+      },
     },
     {
       sequelize,
@@ -32,6 +34,5 @@ module.exports = (sequelize, DataTypes) => {
       timestamps: true,
     }
   );
-
   return Category;
 };

@@ -2,18 +2,17 @@ const { Model } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
   class Book extends Model {
-    static associate({ Author, Category, Review, Borrow }) {
-      this.belongsTo(Author, { foreignKey: 'authorId', as: 'author' });
-      this.belongsToMany(Category, {
+    static associate(models) {
+      Book.belongsTo(models.Author, { foreignKey: 'authorId', as: 'author' });
+      Book.belongsToMany(models.Category, {
         through: 'BookCategories',
         foreignKey: 'bookId',
         as: 'categories',
       });
-      this.hasMany(Review, { foreignKey: 'bookId', as: 'reviews' });
-      this.hasMany(Borrow, { foreignKey: 'bookId', as: 'borrows' });
+      Book.hasMany(models.Review, { foreignKey: 'bookId', as: 'reviews' });
+      Book.hasMany(models.Borrow, { foreignKey: 'bookId', as: 'borrows' });
     }
   }
-
   Book.init(
     {
       id: {
@@ -25,15 +24,32 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
       },
-      volumes: DataTypes.INTEGER,
-      chapters: DataTypes.INTEGER,
-      pages: DataTypes.INTEGER,
-      releaseDate: DataTypes.DATE,
-      synopsis: DataTypes.TEXT,
+      volumes: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+      chapters: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+      pages: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+      releaseDate: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
+      synopsis: {
+        type: DataTypes.TEXT,
+      },
       authorId: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        references: { model: 'Authors', key: 'id' },
+        references: {
+          model: 'Authors',
+          key: 'id',
+        },
       },
     },
     {
@@ -43,6 +59,5 @@ module.exports = (sequelize, DataTypes) => {
       timestamps: true,
     }
   );
-
   return Book;
 };
