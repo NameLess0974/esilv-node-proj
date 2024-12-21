@@ -1,12 +1,12 @@
+// models/author.js
 const { Model } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
   class Author extends Model {
-    static associate({ Book }) {
-      this.hasMany(Book, { foreignKey: 'authorId', as: 'books' });
+    static associate(models) {
+      Author.hasMany(models.Book, { foreignKey: 'authorId', as: 'books' });
     }
   }
-
   Author.init(
     {
       id: {
@@ -18,8 +18,12 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
       },
-      biography: DataTypes.TEXT,
-      birthDate: DataTypes.DATE,
+      biography: {
+        type: DataTypes.TEXT,
+      },
+      birthDate: {
+        type: DataTypes.DATE,
+      },
     },
     {
       sequelize,
@@ -28,6 +32,5 @@ module.exports = (sequelize, DataTypes) => {
       timestamps: true,
     }
   );
-
   return Author;
 };
