@@ -1,15 +1,17 @@
+// routes/userRoutes.js
 const express = require('express');
 const router = express.Router();
-const { getAllUsers, updateUser, deleteUser } = require('../controllers/userController');
+const userController = require('../controllers/userController'); // Assurez-vous que ce chemin est correct
 const { authenticateToken } = require('../middlewares/authMiddleware');
 const { authorizeRoles } = require('../middlewares/roleMiddleware');
 
-// Middleware pour restreindre l'accès aux rôles admin et superadmin
-const adminAccess = [authenticateToken, authorizeRoles('admin', 'superadmin')];
+// Obtenir tous les utilisateurs (admin et superadmin seulement)
+router.get('/', authenticateToken, authorizeRoles('admin', 'superadmin'), userController.getAllUsers);
 
-// Routes utilisateur
-router.get('/', ...adminAccess, getAllUsers);
-router.put('/:id', ...adminAccess, updateUser);
-router.delete('/:id', ...adminAccess, deleteUser);
+// Mettre à jour un utilisateur (admin et superadmin seulement)
+router.put('/:id', authenticateToken, authorizeRoles('admin', 'superadmin'), userController.updateUser);
+
+// Supprimer un utilisateur (admin et superadmin seulement)
+router.delete('/:id', authenticateToken, authorizeRoles('admin', 'superadmin'), userController.deleteUser);
 
 module.exports = router;

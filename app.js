@@ -1,5 +1,5 @@
 // app.js
-require('dotenv').config(); // Charger les variables d'environnement
+require('dotenv').config(); 
 const express = require('express');
 const app = express();
 const db = require('./models');
@@ -19,10 +19,10 @@ const reviewRoutes = require('./routes/reviewRoutes');
 const borrowRoutes = require('./routes/borrowRoutes');
 
 // Middlewares
-app.use(express.json()); // Pour parser le JSON dans les requêtes
-app.use(helmet()); // Sécuriser les en-têtes HTTP
-app.use(cors()); // Autoriser les requêtes CORS
-app.use(morgan('combined')); // Logger les requêtes HTTP
+app.use(express.json()); 
+app.use(helmet());
+app.use(cors());
+app.use(morgan('combined')); 
 
 // Limiter les requêtes pour prévenir les attaques DoS
 const limiter = rateLimit({

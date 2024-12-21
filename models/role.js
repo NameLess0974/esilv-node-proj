@@ -1,12 +1,12 @@
+// models/role.js
 const { Model } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
   class Role extends Model {
-    static associate({ User }) {
-      this.hasMany(User, { foreignKey: 'roleId', as: 'users' });
+    static associate(models) {
+      Role.hasMany(models.User, { foreignKey: 'roleId', as: 'users' });
     }
   }
-
   Role.init(
     {
       id: {
@@ -19,7 +19,9 @@ module.exports = (sequelize, DataTypes) => {
         unique: true,
         allowNull: false,
       },
-      description: DataTypes.TEXT,
+      description: {
+        type: DataTypes.TEXT,
+      },
     },
     {
       sequelize,
@@ -28,6 +30,5 @@ module.exports = (sequelize, DataTypes) => {
       timestamps: true,
     }
   );
-
   return Role;
 };

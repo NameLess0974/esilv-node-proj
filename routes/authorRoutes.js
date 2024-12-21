@@ -1,40 +1,47 @@
+// routes/authorRoutes.js
 const express = require('express');
 const router = express.Router();
-const {
-  createAuthor,
-  getAllAuthors,
-  getAuthorById,
-  updateAuthor,
-  deleteAuthor,
-} = require('../controllers/authorController');
+const authorController = require('../controllers/authorController');
 const { authenticateToken } = require('../middlewares/authMiddleware');
 const { authorizeRoles } = require('../middlewares/roleMiddleware');
 const { body } = require('express-validator');
 
-// Middleware pour restreindre l'accès aux rôles spécifiques
-const adminOrLibrarianAccess = [
+// Créer un nouvel auteur (admin et librarian seulement) avec validation
+router.post(
+  '/',
   authenticateToken,
   authorizeRoles('admin', 'superadmin', 'librarian'),
-];
+  [
+    body('name')
+      .isString()
+      .notEmpty()
+      .withMessage('Le nom de l\'auteur est requis'),
+    body('biography').optional().isString(),
+    body('birthDate').optional().isISO8601().toDate().withMessage('La date de naissance doit être une date valide'),
+  ],
+  authorController.createAuthor
+);
 
-// Validation commune pour les données des auteurs
-const authorValidation = [
-  body('name').optional().isString().notEmpty().withMessage('Le nom de l\'auteur doit être une chaîne non vide'),
-  body('biography').optional().isString(),
-  body('birthDate').optional().isISO8601().toDate().withMessage('La date de naissance doit être une date valide'),
-];
+// Obtenir tous les auteurs (accessible à tous les utilisateurs authentifiés)
+router.get('/', authenticateToken, authorController.getAllAuthors);
 
-// Routes auteur
-router.post('/', ...adminOrLibrarianAccess, [
-  body('name').isString().notEmpty().withMessage('Le nom de l\'auteur est requis'),
-  ...authorValidation.slice(1), // Ajout des autres validations sauf "name" obligatoire
-], createAuthor);
+// Obtenir un auteur par ID (accessible à tous les utilisateurs authentifiés)
+router.get('/:id', authenticateToken, authorController.getAuthorById);
 
-router.get('/', authenticateToken, getAllAuthors);
-router.get('/:id', authenticateToken, getAuthorById);
+// Mettre à jour un auteur (admin et librarian seulement) avec validation
+router.put(
+  '/:id',
+  authenticateToken,
+  authorizeRoles('admin', 'superadmin', 'librarian'),
+  [
+    body('name').optional().isString().notEmpty().withMessage('Le nom de l\'auteur doit être une chaîne de caractères non vide'),
+    body('biography').optional().isString(),
+    body('birthDate').optional().isISO8601().toDate().withMessage('La date de naissance doit être une date valide'),
+  ],
+  authorController.updateAuthor
+);
 
-router.put('/:id', ...adminOrLibrarianAccess, authorValidation, updateAuthor);
-
-router.delete('/:id', ...adminOrLibrarianAccess, deleteAuthor);
+// Supprimer un auteur (admin et librarian seulement)
+router.delete('/:id', authenticateToken, authorizeRoles('admin', 'superadmin', 'librarian'), authorController.deleteAuthor);
 
 module.exports = router;
